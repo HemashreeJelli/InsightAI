@@ -1,59 +1,57 @@
-import re
 from rag.embedder import model, collection
 
-def determine_sections(query: str):
-    """
-    Maps user search intents directly to the exact classifier targets.
-    """
-    query_lower = query.lower()
-    
-    if any(word in query_lower for word in ["method", "approach", "framework", "model", "algorithm", "equation", "loss"]):
-        return "methodology"
-        
-    if any(word in query_lower for word in ["result", "performance", "experiment", "accuracy", "baseline", "table", "dataset", "evaluation"]):
-        return "results"
-        
-    if any(word in query_lower for word in ["summary", "abstract", "overview", "introduction", "conclude", "conclusion", "paper about"]):
-        return "summary"
-        
-    return None
-
-
-def retrieve(query, top_k=5):
+def retrieve(query, top_k=5):  # 🎯 Change: Set top_k back to 5
+    # 1. Generate semantic embedding for the rewritten standalone query
     query_embedding = model.encode(query).tolist()
-    target_section = determine_sections(query)
     
-    # Simple exact-match metadata filtering
-    where_filter = None
-    if target_section:
-        where_filter = {"section": target_section}
+    # --- STEP 6: Print Query Details ---
+    print("\n====================")
+    print("QUERY:", query)
+    print("====================")
 
+    # 2. Pure semantic search over the entire collection
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=top_k,
-        where=where_filter
+        include=["documents", "metadatas", "distances"]
     )
-
-    # Fallback to general vector search if strict filter zeroes out
-    if not results or not results["documents"] or not results["documents"][0]:
-        if where_filter:
-            print(f"⚠️ Metadata filter '{target_section}' returned 0 results. Falling back to global search.")
-            results = collection.query(
-                query_embeddings=[query_embedding],
-                n_results=top_k
-            )
 
     formatted_results = []
     
+    # 3. Process results and print debugging scores
     if results and results["documents"] and results["documents"][0]:
         documents = results["documents"][0]
         metadatas = results["metadatas"][0]
+        distances = results["distances"][0]
 
-        for doc, meta in zip(documents, metadatas):
+        # --- STEP 6: Loop through results, print debug logs, and append ---
+        for doc, meta, dist in zip(documents, metadatas, distances):
+            
+            # Keep your cleanup filter to protect the context window from bibliography trash
+            text_lower = doc.lower()
+            bad_patterns = [
+                "all rights reserved",
+                "received",
+                "accepted",
+                "author contributions",
+                "references",
+                "funding",
+                "acknowledgment",
+                "doi.org",
+                "@",
+            ]
+            
+            if any(pattern in text_lower for pattern in bad_patterns):
+                continue
+
+            print(f"\nDistance: {dist:.4f}")
+            print(f"Page: {meta['page_number']}")
+            print(doc[:200] + "...") 
+
             formatted_results.append({
                 "text": doc,
                 "filename": meta["filename"],
-                "page_number": meta["page_number"],
-                "section": meta.get("section", "Unknown")
+                "page_number": meta["page_number"]
             })
+
     return formatted_results

@@ -17,13 +17,22 @@ def rewrite_query(chat_history, current_question):
         history_text += f"{msg['role']}: {msg['content']}\n"
 
     prompt = f"""
-You are a query rewriting assistant.
+You are a query rewriting assistant for a research-paper QA system.
 
-Your job is to rewrite follow-up questions into standalone questions.
+Your task is to rewrite follow-up questions into COMPLETE standalone questions.
 
-Use the chat history for context.
-
-If the question is already standalone, return it unchanged.
+Rules:
+- Preserve the original meaning exactly
+- Resolve vague references like:
+  - it
+  - they
+  - this method
+  - the baseline
+  - those results
+- Use the chat history to infer what these references mean
+- DO NOT answer the question
+- ONLY return the rewritten standalone query
+- If the question is already standalone, return it unchanged
 
 CHAT HISTORY:
 {history_text}
@@ -31,7 +40,7 @@ CHAT HISTORY:
 FOLLOW-UP QUESTION:
 {current_question}
 
-STANDALONE QUESTION:
+REWRITTEN STANDALONE QUESTION:
 """
 
     completion = client.chat.completions.create(

@@ -9,7 +9,7 @@ client = Groq(
 )
 
 
-def generate_answer(question, retrieved_chunks):
+def generate_answer(question, retrieved_chunks, chat_history=None):
 
     context = ""
 
@@ -23,6 +23,12 @@ def generate_answer(question, retrieved_chunks):
         {chunk['text']}
         """
 
+    history_text = ""
+
+    if chat_history:
+        for msg in chat_history[-6:]:
+            history_text += f"{msg['role']}: {msg['content']}\n"
+
     prompt = f"""
 You are an AI research assistant.
 
@@ -35,9 +41,14 @@ If methods, models, or techniques are mentioned:
 - distinguish the proposed method from baseline methods
 - summarize the methodology clearly
 
+When analyzing tables or statistical tests (like t-tests), double-check that the metrics or values you quote match the exact pairs or rows being compared in the text context.
+
 If the answer cannot be found in the context, say so explicitly.
 
-CONTEXT:
+CONVERSATION HISTORY:
+{history_text}
+
+RETRIEVED CONTEXT:
 {context}
 
 QUESTION:

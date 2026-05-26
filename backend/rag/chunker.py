@@ -1,5 +1,5 @@
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 import re
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=500,
@@ -7,6 +7,7 @@ splitter = RecursiveCharacterTextSplitter(
 )
 
 def is_good_chunk(text):
+    """Filters out malformed text, OCR noise, and citation-heavy blocks."""
     if len(text.split()) < 40:
         return False
 
@@ -20,42 +21,58 @@ def is_good_chunk(text):
 
     return True
 
+
+def classify_chunk(chunk_text: str) -> str:
+    """
+    Advanced Heuristic Classifier: Uses prioritized phrase matching to prevent 
+    overlapping vocabulary (like the word 'result') from misclassifying chunks.
+    """
+    text = chunk_text.lower()
+
+    # 1. PRIORITY 1: METHODOLOGY (Check for active design/proposals first)
+    # Even if the word 'result' is here, phrases like 'we propose' override it.
+    if any(phrase in text for phrase in [
+        "we propose", "our framework", "our method", "architecture", 
+        "proposed model", "algorithm", "mathematically", "equation"
+    ]):
+        return "methodology"
+
+    # 2. PRIORITY 2: HIGH-LEVEL SUMMARY
+    if any(phrase in text for phrase in [
+        "in conclusion", "this paper presents", "abstract", 
+        "summary of", "concluding remarks"
+    ]):
+        return "summary"
+
+    # 3. PRIORITY 3: RESULTS & EXPERIMENTS
+    # Now we look for context clues that isolate statistical outputs and testing.
+    if any(phrase in text for phrase in [
+        "results show", "experimental setup", "outperformed", "baseline", 
+        "table", "figure", "accuracy", "dataset", "evaluation"
+    ]):
+        return "results"
+
+    # 4. FALLBACK
+    return "general"
+
+
 def chunk_pages(pages):
     chunks = []
 
-    # Regex that finds headings like "1. Introduction" even if newlines are missing
-    # Looks for a digit, a period, spaces, and an uppercase starting word
-    section_pattern = r'(\b\d+\.\s+[A-Z][A-Za-z\s]{3,30}(?=\s))'
-
     for page in pages:
-        page_text = page["text"]
+        # Blindly split the full page text cleanly
+        split_texts = splitter.split_text(page["text"])
         
-        # Split the text by the section headers
-        parts = re.split(section_pattern, page_text)
-        
-        current_section = "Abstract/Introduction"
-        
-        # If the page doesn't start with a header, the first element is text
-        # re.split returns [text_before, heading, text_after, heading, text_after...]
-        for item in parts:
-            item = item.strip()
-            if not item:
-                continue
+        for idx, chunk in enumerate(split_texts):
+            if is_good_chunk(chunk):
+                # Classify the chunk directly from its content strings
+                assigned_section = classify_chunk(chunk)
                 
-            # Check if this item is a section heading match
-            if re.match(section_pattern, item):
-                current_section = item
-            else:
-                # This item is the text block inside the current section
-                split_texts = splitter.split_text(item)
-                
-                for idx, chunk in enumerate(split_texts):
-                    if is_good_chunk(chunk):
-                        chunks.append({
-                            "chunk_text": chunk,
-                            "page_number": page["page_number"],
-                            "chunk_index": idx,
-                            "section": current_section  # Inject section tracking metadata!
-                        })
+                chunks.append({
+                    "chunk_text": chunk,
+                    "page_number": page["page_number"],
+                    "chunk_index": idx,
+                    "section": assigned_section  # Ex: "methodology", "results", etc.
+                })
 
     return chunks

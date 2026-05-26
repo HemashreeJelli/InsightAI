@@ -1,7 +1,7 @@
 from rag.retriever import retrieve
 from rag.generator import generate_answer
 
-question = "What methods or frameworks are being proposed in this study?"
+question = "How does the contrastive learning module contribute to stance differentiation?"
 
 retrieved_chunks = retrieve(question)
 

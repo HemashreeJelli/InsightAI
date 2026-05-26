@@ -1,7 +1,7 @@
 from rag.retriever import retrieve
 from rag.generator import generate_answer
 
-question = "What methods are used in this study?"
+question = "What methods or frameworks are being proposed in this study?"
 
 retrieved_chunks = retrieve(question)
 

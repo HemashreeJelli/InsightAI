@@ -53,7 +53,7 @@ while True:
     print("\nAssistant:")
     print(final_answer)
 
-    # 5. Save the complete conversation state (including citations) to memory
+    # 5. Save the complete conversation state to memory
     chat_history.append({
         "role": "user",
         "content": user_input

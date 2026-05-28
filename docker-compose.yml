@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # 1. FastAPI RAG Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: insightai_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    volumes:
+      # Mount ChromaDB and uploads so they survive container restarts locally
+      - ./backend/chroma_db:/app/chroma_db
+      - ./backend/uploaded_docs:/app/uploaded_docs
+    restart: unless-stopped
+    networks:
+      - insightai_net
+
+  # 2. React Vite Frontend Service (served via Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:8000 # Points to the local backend port
+    container_name: insightai_frontend
+    ports:
+      - "80:80" # Maps port 80 (HTTP) of the container to port 80 of your laptop
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - insightai_net
+
+networks:
+  insightai_net:
+    driver: bridge

@@ -1,19 +1,30 @@
 from rag.embedder import model, collection
 
-def retrieve(query, top_k=5):  # 🎯 Change: Set top_k back to 5
+def retrieve(query, top_k=5, filenames=None):  # 🎯 Change: Set top_k back to 5
     # 1. Generate semantic embedding for the rewritten standalone query
     query_embedding = model.encode(query).tolist()
     
     # --- STEP 6: Print Query Details ---
     print("\n====================")
     print("QUERY:", query)
+    if filenames:
+        print("FILTERS:", filenames)
     print("====================")
 
-    # 2. Pure semantic search over the entire collection
+    # 2. Setup dynamic metadata filter for specific documents
+    where_clause = None
+    if filenames:
+        if len(filenames) == 1:
+            where_clause = {"filename": filenames[0]}
+        else:
+            where_clause = {"filename": {"$in": filenames}}
+
+    # 3. Pure semantic search over the collection (optionally filtered)
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=top_k,
-        include=["documents", "metadatas", "distances"]
+        include=["documents", "metadatas", "distances"],
+        where=where_clause
     )
 
     formatted_results = []

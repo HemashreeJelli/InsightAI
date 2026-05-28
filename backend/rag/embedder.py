@@ -16,7 +16,7 @@ model = SentenceTransformer("all-MiniLM-L6-v2")
 def embed_and_store(chunks, filename):
     # Defensive check: if no good chunks made it through the filters, stop early!
     if not chunks:
-        print("⚠️ No valid chunks passed the quality filters. Skipping storage.")
+        print("[WARNING] No valid chunks passed the quality filters. Skipping storage.")
         return
 
     documents = []
@@ -49,4 +49,4 @@ def embed_and_store(chunks, filename):
         ids=ids
     )
 
-    print(f"✅ Stored {len(chunks)} chunks successfully.")
+    print(f"[SUCCESS] Stored {len(chunks)} chunks successfully.")

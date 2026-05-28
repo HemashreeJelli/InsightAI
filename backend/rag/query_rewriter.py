@@ -1,6 +1,6 @@
+import os
 from groq import Groq
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
@@ -9,10 +9,24 @@ client = Groq(
 )
 
 def rewrite_query(chat_history, current_question):
+    # ==============================================================
+    # 🎯 GUARD 1: If history is empty, skip rewriting completely
+    # ==============================================================
+    if not chat_history or len(chat_history) < 2:
+        return current_question.strip()
 
-    # Convert chat history into readable format
+    # ==============================================================
+    # 🎯 GUARD 2: Heuristic check for inherently standalone phrases
+    # ==============================================================
+    text_lower = current_question.lower()
+    standalone_indicators = ["paper", "methodology", "dataset", "results", "model", "approach"]
+    
+    # If the user explicitly asks a direct structural question, preserve it
+    if any(word in text_lower for word in standalone_indicators):
+        return current_question.strip()
+
+    # If both guards pass, proceed to contextual LLM pronoun resolution
     history_text = ""
-
     for msg in chat_history:
         history_text += f"{msg['role']}: {msg['content']}\n"
 
@@ -23,16 +37,15 @@ Your task is to rewrite follow-up questions into COMPLETE standalone questions.
 
 Rules:
 - Preserve the original meaning exactly
+- Preserve important technical entities, methods, datasets, and topics
 - Resolve vague references like:
   - it
   - they
   - this method
   - the baseline
-  - those results
-- Use the chat history to infer what these references mean
-- DO NOT answer the question
-- ONLY return the rewritten standalone query
-- If the question is already standalone, return it unchanged
+- Keep the rewritten query concise
+- Do not answer the question
+- Return ONLY the rewritten standalone query
 
 CHAT HISTORY:
 {history_text}
@@ -53,5 +66,5 @@ REWRITTEN STANDALONE QUESTION:
             }
         ]
     )
-
+    
     return completion.choices[0].message.content.strip()

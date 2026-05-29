@@ -29,6 +29,18 @@ async def upload_document(file: UploadFile = File(...)):
             detail="Only PDF documents are supported."
         )
 
+    # Count existing unique PDFs in local storage
+    existing_pdfs = []
+    if os.path.exists(UPLOAD_DIR):
+        existing_pdfs = [f for f in os.listdir(UPLOAD_DIR) if f.lower().endswith(".pdf")]
+
+    # Enforce strict 5-document library limit
+    if file.filename not in existing_pdfs and len(existing_pdfs) >= 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Maximum library limit of 5 documents reached. Please delete an existing document to upload a new one."
+        )
+
     file_path = os.path.join(UPLOAD_DIR, file.filename)
 
     try:

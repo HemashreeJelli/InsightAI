@@ -12,7 +12,7 @@ The backend implements a highly specialized, citation-aware RAG pipeline:
 3. **Smart Chunking (`rag/chunker.py`)**: Splits page text using LangChain's `RecursiveCharacterTextSplitter` (1024-character size, 100-character overlap) and performs quality validation (rejecting extremely short/malformed fragments).
 4. **Vector Embedding & Storage (`rag/embedder.py`)**: Creates local embeddings using the `all-MiniLM-L6-v2` SentenceTransformer model and stores them in a persistent `ChromaDB` collection.
 5. **Contextual Query Rewriting (`rag/query_rewriter.py`)**: Before querying the vector store, the system feeds current question & conversation history to a Groq LLM (`llama-3.3-70b-versatile`) to rewrite follow-up questions into standalone queries, resolving pronoun ambiguities (e.g., "how does it compare?" -> "how does [Model] compare to [Baseline]?").
-6. **Semantic Retrieval (`rag/retriever.py`)**: Performs similarity searches on ChromaDB filtered by selected documents, returning the top matches and stripping out junk text (e.g., copyright terms, funding alerts).
+6. **Two-Stage Semantic Retrieval (`rag/retriever.py`)**: Performs a semantic lookup to retrieve 15 candidate vector chunks, and then utilizes a Cross-Encoder reranker (`cross-encoder/ms-marco-MiniLM-L-6-v2`) to re-score and select the top 5 most relevant context blocks, stripping out boilerplate noise.
 7. **Answer Generation (`rag/generator.py`)**: Generates citation-aligned Markdown responses using Groq with precise instructions to avoid hallucinations.
 
 ---
@@ -20,7 +20,7 @@ The backend implements a highly specialized, citation-aware RAG pipeline:
 ## 🛠️ API Endpoints
 
 ### **Documents Router** (`/api/documents`)
-* **`POST /upload`**: Uploads a PDF document, processes it, chunks it, and loads vector embeddings.
+* **`POST /upload`**: Uploads a PDF document, verifies the strict 5-document library size limit, processes text, chunks content, and loads vector embeddings.
 * **`GET /`**: Lists all uploaded and processed PDF documents.
 * **`DELETE /{filename}`**: Deletes a document from server disk and purges its vector embeddings from ChromaDB.
 

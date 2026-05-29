@@ -7,7 +7,8 @@ InsightAI is a high-performance, citation-aware Retrieval-Augmented Generation (
 ## 🚀 Key Features
 
 * **PDF Document Processing**: Extracts, cleans, and pre-processes PDF text, filtering out OCR noise and bibliography garbage.
-* **Vector Search Database**: Generates high-quality semantic embeddings using SentenceTransformers (`all-MiniLM-L6-v2`) and indexes them in a persistent ChromaDB database.
+* **5-Document Library Limit**: Enforces a strict capacity boundary of 5 documents max at both frontend and backend layers to preserve resource health.
+* **Two-Stage Reranked Vector Search**: Queries a pool of 15 candidate vector chunks from ChromaDB and applies a high-precision Cross-Encoder model (`cross-encoder/ms-marco-MiniLM-L-6-v2`) to re-score and select the top 5 most relevant chunks.
 * **Conversational Query Rewriting**: Utilizes a Groq LLM (`llama-3.3-70b-versatile`) to resolve pronouns and context, rewriting follow-up queries into complete standalone questions.
 * **Citation-Aware Answers**: Generates detailed, structured answers referencing specific documents and page numbers.
 * **Interactive Dashboard**: Modern glassmorphic web interface containing a document manager and stateful chat room with smooth micro-animations.
